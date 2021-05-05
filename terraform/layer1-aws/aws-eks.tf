@@ -1,3 +1,16 @@
+locals {
+  asg_spot_tags = [tomap({ "key" = "k8s.io/cluster-autoscaler/enabled", "propagate_at_launch" = "true", "value" = "true" }),
+    tomap({ "key" = "k8s.io/cluster-autoscaler/${local.name}", "propagate_at_launch" = "true", "value" = "true" })
+  ]
+  asg_ondemand_tags = [tomap({ "key" = "k8s.io/cluster-autoscaler/enabled", "propagate_at_launch" = "false", "value" = "true" }),
+    tomap({ "key" = "k8s.io/cluster-autoscaler/${local.name}", "propagate_at_launch" = "false", "value" = "true" })
+  ]
+  asg_ci_tags = [tomap({ "key" = "k8s.io/cluster-autoscaler/enabled", "propagate_at_launch" = "false", "value" = "true" }),
+    tomap({ "key" = "k8s.io/cluster-autoscaler/${local.name}", "propagate_at_launch" = "false", "value" = "true" }),
+    tomap({ "key" = "k8s.io/cluster-autoscaler/node-template/label/purpose", "propagate_at_launch" = "true", "value" = "ci" })
+  ]
+}
+
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "15.1.0"
@@ -26,18 +39,7 @@ module "eks" {
       kubelet_extra_args      = "--node-labels=node.kubernetes.io/lifecycle=spot"
       public_ip               = false
       additional_userdata     = file("${path.module}/templates/eks-x86-nodes-userdata.sh")
-      tags = [
-        {
-          "key"                 = "k8s.io/cluster-autoscaler/enabled"
-          "propagate_at_launch" = "false"
-          "value"               = "true"
-        },
-        {
-          "key"                 = "k8s.io/cluster-autoscaler/${local.name}"
-          "propagate_at_launch" = "false"
-          "value"               = "true"
-        }
-      ]
+      tags                    = local.asg_ondemand_tags
     },
     {
       name                 = "ondemand"
@@ -49,18 +51,7 @@ module "eks" {
       kubelet_extra_args   = "--node-labels=node.kubernetes.io/lifecycle=ondemand"
       public_ip            = false
       additional_userdata  = file("${path.module}/templates/eks-x86-nodes-userdata.sh")
-      tags = [
-        {
-          "key"                 = "k8s.io/cluster-autoscaler/enabled"
-          "propagate_at_launch" = "true"
-          "value"               = "true"
-        },
-        {
-          "key"                 = "k8s.io/cluster-autoscaler/${local.name}"
-          "propagate_at_launch" = "true"
-          "value"               = "true"
-        }
-      ]
+      tags                 = local.asg_spot_tags
     },
     {
       name                    = "ci"
@@ -74,23 +65,7 @@ module "eks" {
       kubelet_extra_args      = "--node-labels=node.kubernetes.io/lifecycle=spot --node-labels=purpose=ci --register-with-taints=purpose=ci:NoSchedule"
       public_ip               = true
       additional_userdata     = file("${path.module}/templates/eks-x86-nodes-userdata.sh")
-      tags = [
-        {
-          "key"                 = "k8s.io/cluster-autoscaler/enabled"
-          "propagate_at_launch" = "false"
-          "value"               = "true"
-        },
-        {
-          "key"                 = "k8s.io/cluster-autoscaler/${local.name}"
-          "propagate_at_launch" = "false"
-          "value"               = "true"
-        },
-        {
-          "key"                 = "k8s.io/cluster-autoscaler/node-template/label/purpose"
-          "propagate_at_launch" = "true"
-          "value"               = "ci"
-        }
-      ]
+      tags                    = local.asg_ci_tags
     },
   ]
 
