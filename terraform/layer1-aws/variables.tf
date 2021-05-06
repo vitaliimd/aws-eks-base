@@ -120,6 +120,21 @@ variable "eks_worker_groups" {
   }
 }
 
+variable "create_fargate_profiles" {
+  description = "Flag to create fargate profiles"
+  default     = true
+}
+
+variable "eks_fargate_profiles" {
+  description = "EKS fargate profiles"
+  default = {
+    example = {
+      namespace = "fargate"
+      labels    = { "lifecycle" = "fargate" }
+    }
+  }
+}
+
 variable "eks_map_roles" {
   description = "Additional IAM roles to add to the aws-auth configmap."
   type = list(object({

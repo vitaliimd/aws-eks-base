@@ -1,24 +1,20 @@
 locals {
-  asg_spot_tags = [tomap({ "key" = "k8s.io/cluster-autoscaler/enabled", "propagate_at_launch" = "true", "value" = "true" }),
-    tomap({ "key" = "k8s.io/cluster-autoscaler/${local.name}", "propagate_at_launch" = "true", "value" = "true" })
-  ]
-  asg_ondemand_tags = [tomap({ "key" = "k8s.io/cluster-autoscaler/enabled", "propagate_at_launch" = "false", "value" = "true" }),
-    tomap({ "key" = "k8s.io/cluster-autoscaler/${local.name}", "propagate_at_launch" = "false", "value" = "true" })
-  ]
-  asg_ci_tags = [tomap({ "key" = "k8s.io/cluster-autoscaler/enabled", "propagate_at_launch" = "false", "value" = "true" }),
-    tomap({ "key" = "k8s.io/cluster-autoscaler/${local.name}", "propagate_at_launch" = "false", "value" = "true" }),
-    tomap({ "key" = "k8s.io/cluster-autoscaler/node-template/label/purpose", "propagate_at_launch" = "true", "value" = "ci" })
-  ]
+  asg_tags = [tomap({ "key" = "k8s.io/cluster-autoscaler/enabled", "propagate_at_launch" = "false", "value" = "true" }),
+  tomap({ "key" = "k8s.io/cluster-autoscaler/${local.name}", "propagate_at_launch" = "false", "value" = "true" })]
+  asg_ci_tags     = [tomap({ "key" = "k8s.io/cluster-autoscaler/node-template/label/purpose", "propagate_at_launch" = "true", "value" = "ci" })]
+  fargate_tags    = tomap({ "tags" = { "lifecycle" = "fargate" } })
+  fargate_subnets = tomap({ "subnet" = module.vpc.private_subnets })
 }
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "15.1.0"
 
-  cluster_name    = local.name
-  cluster_version = var.eks_cluster_version
-  subnets         = module.vpc.intra_subnets
-  enable_irsa     = true
+  cluster_name                                       = local.name
+  cluster_version                                    = var.eks_cluster_version
+  subnets                                            = module.vpc.intra_subnets
+  enable_irsa                                        = true
+  worker_create_cluster_primary_security_group_rules = true
 
   tags = {
     ClusterName = local.name
@@ -39,7 +35,7 @@ module "eks" {
       kubelet_extra_args      = "--node-labels=node.kubernetes.io/lifecycle=spot"
       public_ip               = false
       additional_userdata     = file("${path.module}/templates/eks-x86-nodes-userdata.sh")
-      tags                    = local.asg_ondemand_tags
+      tags                    = local.asg_tags
     },
     {
       name                 = "ondemand"
@@ -51,7 +47,7 @@ module "eks" {
       kubelet_extra_args   = "--node-labels=node.kubernetes.io/lifecycle=ondemand"
       public_ip            = false
       additional_userdata  = file("${path.module}/templates/eks-x86-nodes-userdata.sh")
-      tags                 = local.asg_spot_tags
+      tags                 = local.asg_tags
     },
     {
       name                    = "ci"
@@ -65,9 +61,11 @@ module "eks" {
       kubelet_extra_args      = "--node-labels=node.kubernetes.io/lifecycle=spot --node-labels=purpose=ci --register-with-taints=purpose=ci:NoSchedule"
       public_ip               = true
       additional_userdata     = file("${path.module}/templates/eks-x86-nodes-userdata.sh")
-      tags                    = local.asg_ci_tags
+      tags                    = concat(local.asg_tags, local.asg_ci_tags)
     },
   ]
+
+  fargate_profiles = var.create_fargate_profiles ? { for profile_name, profile_value in var.eks_fargate_profiles : profile_name => merge(profile_value, local.fargate_subnets, local.fargate_tags) } : {}
 
   map_roles = local.eks_map_roles
 
