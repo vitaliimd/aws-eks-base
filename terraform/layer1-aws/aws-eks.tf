@@ -1,9 +1,11 @@
 locals {
   asg_tags = [tomap({ "key" = "k8s.io/cluster-autoscaler/enabled", "propagate_at_launch" = "false", "value" = "true" }),
   tomap({ "key" = "k8s.io/cluster-autoscaler/${local.name}", "propagate_at_launch" = "false", "value" = "true" })]
-  asg_ci_tags     = [tomap({ "key" = "k8s.io/cluster-autoscaler/node-template/label/purpose", "propagate_at_launch" = "true", "value" = "ci" })]
-  fargate_tags    = tomap({ "tags" = { "lifecycle" = "fargate" } })
-  fargate_subnets = tomap({ "subnet" = module.vpc.private_subnets })
+
+  asg_ci_tags      = [tomap({ "key" = "k8s.io/cluster-autoscaler/node-template/label/purpose", "propagate_at_launch" = "true", "value" = "ci" })]
+  fargate_tags     = tomap({ "tags" = { "lifecycle" = "fargate" } })
+  fargate_subnets  = tomap({ "subnet" = module.vpc.private_subnets })
+  fargate_profiles = var.create_fargate_profiles ? { for profile_name, profile_value in var.eks_fargate_profiles : profile_name => merge(profile_value, local.fargate_subnets, local.fargate_tags) } : {}
 }
 
 module "eks" {
@@ -65,7 +67,7 @@ module "eks" {
     },
   ]
 
-  fargate_profiles = var.create_fargate_profiles ? { for profile_name, profile_value in var.eks_fargate_profiles : profile_name => merge(profile_value, local.fargate_subnets, local.fargate_tags) } : {}
+  fargate_profiles = local.fargate_profiles
 
   map_roles = local.eks_map_roles
 
