@@ -122,7 +122,7 @@ variable "eks_worker_groups" {
 
 variable "create_fargate_profiles" {
   description = "Flag to create fargate profiles"
-  default     = true
+  default     = false
 }
 
 variable "eks_fargate_profiles" {
