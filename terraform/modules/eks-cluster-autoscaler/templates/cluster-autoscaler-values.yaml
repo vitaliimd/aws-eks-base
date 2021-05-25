@@ -1,0 +1,29 @@
+image:
+  tag: ${version}
+
+awsRegion: ${region}
+
+rbac:
+  create: true
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: ${role_arn}
+
+autoDiscovery:
+  clusterName: ${cluster_name}
+
+serviceMonitor:
+  enabled: ${service_monitor_enable}
+  interval: 10s
+  namespace: monitoring
+  path: /metrics
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: node.kubernetes.io/lifecycle
+          operator: In
+          values:
+            - ondemand

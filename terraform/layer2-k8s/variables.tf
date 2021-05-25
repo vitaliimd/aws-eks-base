@@ -151,3 +151,9 @@ variable "helm_release_history_size" {
   description = "How much helm releases to store"
   default     = 5
 }
+
+variable "cluster_autoscaler_enable" {
+  description = "Enable or Disable cluster autoscaler"
+  type        = bool
+  default     = true
+}
