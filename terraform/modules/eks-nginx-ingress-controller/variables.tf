@@ -9,7 +9,8 @@ variable "chart_name" {
   default     = "ingress-nginx"
 }
 variable "repository" {
-  default = "https://kubernetes.github.io/ingress-nginx"
+  description = "Helm repo ingress nginx"
+  default     = "https://kubernetes.github.io/ingress-nginx"
 }
 variable "namespace" {
   description = "Name of kubernetes namespace for alb_ingres"
