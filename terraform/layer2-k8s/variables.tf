@@ -46,17 +46,10 @@ variable "cert_manager_version" {
 }
 
 # NGINX Ingress
-variable "nginx_ingress_controller_version" {
-  description = "Version of nginx-ingress helm chart"
-  default     = "3.23.0"
-}
-
-variable "nginx_ingress_ssl_terminator" {
-  description = "Select SSL termination type"
-  default     = "lb"
-  # options:
-  # lb - terminate ssl on loadbalancer side
-  # nginx - terminate ssl on nginx side
+variable "eks-nginx-ingress-controller_enable" {
+  description = "Disable or Enable eks-nginx-ingress-controller"
+  type        = bool
+  default     = true
 }
 
 # ALB Ingress
